@@ -10,7 +10,11 @@ import (
 func encodeXML(s GoStruct, e *xml.Encoder, cfg xmlOutputConfig) error {
 	var start xml.StartElement
 
-	start.Name.Local = cfg.RootElement
+	if !cfg.SkipRootElement {
+		start.Name.Local = cfg.RootElement
+		start.Name.Space = cfg.RootNamespace
+	}
+
 	err := xmlEncoder(e, s, start, cfg.Namespace)
 	if err == nil {
 		e.Flush()
@@ -31,7 +35,9 @@ func xmlEncoder(e *xml.Encoder, obj interface{}, start xml.StartElement, xmlns s
 
 	switch v.Kind() {
 	case reflect.Struct:
-		e.EncodeToken(start)
+		if start.Name.Local != "" {
+			e.EncodeToken(start)
+		}
 		// Recurse into struct members.
 		for i := 0; i < t.NumField(); i++ {
 			tf := t.Field(i)
@@ -45,7 +51,9 @@ func xmlEncoder(e *xml.Encoder, obj interface{}, start xml.StartElement, xmlns s
 				return err
 			}
 		}
-		e.EncodeToken(start.End())
+		if start.Name.Local != "" {
+			e.EncodeToken(start.End())
+		}
 
 	case reflect.Map:
 		// Iterate the map's values, using the same start element for each.

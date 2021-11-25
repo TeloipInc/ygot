@@ -38,6 +38,13 @@ type EmitXMLConfig struct {
 	// RootElement specifies the name of the root element.
 	// The default value is "root".
 	RootElement string
+	// Namespace specifies the XML namespace to which the root data structure being
+	// converted to XML belongs.
+	RootNamespace string
+	// SkipRootElement specifies whether the GoStruct supplied to EmitXML should
+	// create the xml element.
+	// is set to true.
+	SkipRootElement bool
 	// SkipValidation specifies whether the GoStruct supplied to EmitXML should
 	// be validated before emitting its content. Validation is skipped when it
 	// is set to true.
@@ -54,8 +61,15 @@ type xmlOutputConfig struct {
 	// Namespace specifies the XML namespace to which the data structures being
 	// converted to XML belong.
 	Namespace string
+	// SkipRootElement specifies whether the GoStruct supplied to EmitXML should
+	// create the xml element.
+	// is set to true.
+	SkipRootElement bool
 	// RootElement specifies the name of the root element.
 	RootElement string
+	// Namespace specifies the XML namespace to which the root data structure being
+	// converted to XML belongs.
+	RootNamespace string
 }
 
 // EmitXML takes an input ValidatedGoStruct (produced by ygen with validation enabled)
@@ -81,6 +95,12 @@ func EmitXML(s ValidatedGoStruct, opts *EmitXMLConfig) (string, error) {
 		if opts.RootElement != "" {
 			cfg.RootElement = opts.RootElement
 		}
+
+		if opts.RootNamespace != "" {
+			cfg.RootNamespace = opts.RootNamespace
+		}
+
+		cfg.SkipRootElement = opts.SkipRootElement
 	}
 
 	if !skipValidation {
