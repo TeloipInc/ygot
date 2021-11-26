@@ -2,6 +2,7 @@ package ygot
 
 import (
 	"encoding/xml"
+	"fmt"
 	"reflect"
 )
 
@@ -29,11 +30,15 @@ func xmlEncoder(e *xml.Encoder, obj interface{}, start xml.StartElement, xmlns s
 
 	// Dereference the object to get the actual value and type.
 	if v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+		if v.IsNil() {
+			return nil
+		}
+
 		v = v.Elem()
 		t = t.Elem()
 	}
 
-	switch v.Kind() {
+	switch k := v.Kind(); k {
 	case reflect.Struct:
 		if start.Name.Local != "" {
 			e.EncodeToken(start)
@@ -63,6 +68,17 @@ func xmlEncoder(e *xml.Encoder, obj interface{}, start xml.StartElement, xmlns s
 		}
 
 	default:
+		// for YANG enums we need to convert int values to their string representation
+		if _, isEnum := obj.(GoEnum); isEnum {
+			name, set, err := enumFieldToString(v, false)
+			if err != nil {
+				return fmt.Errorf("cannot resolve enumerated type, got err: %v", err)
+			}
+			if !set {
+				break
+			}
+			obj = name
+		}
 		e.EncodeElement(obj, start)
 	}
 
