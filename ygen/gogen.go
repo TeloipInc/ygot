@@ -237,11 +237,12 @@ type generatedGoMultiKeyListStruct struct {
 // generatedGoListMethod contains the fields required for generating the methods
 // that are associated with a list entry within a struct representing a YANG entity.
 type generatedGoListMethod struct {
-	ListName  string          // ListName is the name of the list for which the method is being generated within its parent struct.
-	ListType  string          // ListType is the type (struct name) of the element representing the list.
-	Keys      []goStructField // Keys of the list that is being generated (length = 1 if the list is single keyed).
-	KeyStruct string          // KeyStruct is the name of the struct used as a key for a multi-keyed list.
-	Receiver  string          // Receiver is the name of the parent struct of the list, which is the receiver for the generated method.
+	ListName      string          // ListName is the name of the list for which the method is being generated within its parent struct.
+	ListType      string          // ListType is the type (struct name) of the element representing the list.
+	Keys          []goStructField // Keys of the list that is being generated (length = 1 if the list is single keyed).
+	KeyStruct     string          // KeyStruct is the name of the struct used as a key for a multi-keyed list.
+	Receiver      string          // Receiver is the name of the parent struct of the list, which is the receiver for the generated method.
+	OrderedByUser bool            // OrderedByUser is set to true if the associated YANG list is 'ordered-by user'.
 }
 
 // generatedGoKeyHelper contains the fields required for generating a method
@@ -661,11 +662,16 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 		{{- end }}
 	}
 
+	{{ if .OrderedByUser -}}
+	// Ensure that we maintain the index OrderedBy User
+	t.{{ .ListName }}[key].OrderedMapIndex = len(t.{{ .ListName }}) - 1	
+	{{- end }}
+
 	return t.{{ .ListName }}[key], nil
 }
 `)
 
-	// goListGetterTemplate defines a template for a function that, for a particular
+	// goListGetterTemplate defines a template for a function that, for a :particular
 	// list key, gets an existing map value.
 	goListGetterTemplate = mustMakeTemplate("getList", `
 // Get{{ .ListName }} retrieves the value with the specified key from
@@ -1333,6 +1339,16 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		})
 	}
 
+	// for lists that are "ordered-by user" we need to inject a OrderedMapIndex that
+	// will be skipped while marshalling
+	if targetStruct.ListAttr != nil && isListOrderedByUser(targetStruct.Entry) {
+		structDef.Fields = append(structDef.Fields, &goStructField{
+			Name: "OrderedMapIndex",
+			Type: "int",
+			Tags: `skip:"true"`,
+		})
+	}
+
 	// Alphabetically order fields to produce deterministic output.
 	for _, fName := range GetOrderedFieldNames(targetStruct) {
 		// Iterate through the fields of the struct that we are generating code for.
@@ -1363,6 +1379,10 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 
 			if listMethods != nil {
 				associatedListMethods = append(associatedListMethods, listMethods)
+
+				if listMethods.OrderedByUser {
+					fieldDef.Tags = `sort:"user"`
+				}
 			}
 
 			if multiKeyListKey != nil {
@@ -1567,7 +1587,8 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			}
 		}
 
-		tagBuf.WriteString(`path:"`)
+		tagBuf.WriteString(fieldDef.Tags)
+		tagBuf.WriteString(` path:"`)
 		metadataTagBuf.WriteString(`path:"`)
 		// Find the schema paths that the field corresponds to, such that these can
 		// be used as annotations (tags) within the generated struct. Go paths are
@@ -2033,11 +2054,12 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	// Generate the specification for the methods that should be generated for this
 	// list, such that this can be handed to the relevant templates to generate code.
 	listMethodSpec := &generatedGoListMethod{
-		ListName:  listFieldName,
-		ListType:  listName,
-		KeyStruct: listKeyStructName,
-		Keys:      listKeys,
-		Receiver:  parent.Name,
+		ListName:      listFieldName,
+		ListType:      listName,
+		KeyStruct:     listKeyStructName,
+		Keys:          listKeys,
+		Receiver:      parent.Name,
+		OrderedByUser: isListOrderedByUser(listField),
 	}
 
 	return listType, multiListKey, listMethodSpec, nil
@@ -2208,4 +2230,16 @@ func quoteDefault(value *string, goType string) *string {
 	}
 
 	return value
+}
+
+func isListOrderedByUser(entry *yang.Entry) bool {
+	if xs, ok := entry.Extra["ordered-by"]; ok {
+		for _, x := range xs {
+			xv, ok := x.(*yang.Value)
+			if ok && xv != nil && xv.Name == "user" {
+				return true
+			}
+		}
+	}
+	return false
 }
