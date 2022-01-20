@@ -180,7 +180,7 @@ func validateStructElems(schema *yang.Entry, value interface{}) util.Errors {
 
 		// If this is an annotation field, then skip it since it does not have
 		// a schema.
-		if util.IsYgotAnnotation(ft) {
+		if util.IsYgotAnnotation(ft) || util.IsSkippableField(ft) {
 			continue
 		}
 
@@ -239,7 +239,11 @@ func validateListSchema(schema *yang.Entry) error {
 // key field name.
 func schemaNameToFieldName(structElems reflect.Value, schemaKeyFieldName string) (string, error) {
 	for i := 0; i < structElems.NumField(); i++ {
-		ps, err := util.RelativeSchemaPath(structElems.Type().Field(i))
+		sf := structElems.Type().Field(i)
+		if util.IsSkippableField(sf) {
+			continue
+		}
+		ps, err := util.RelativeSchemaPath(sf)
 		if err != nil {
 			return "", err
 		}

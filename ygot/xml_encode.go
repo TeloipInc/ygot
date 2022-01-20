@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+
+	"github.com/openconfig/ygot/util"
 )
 
 // encodeXML renders the GoStruct s to xml string using a very simple set of
@@ -55,7 +57,7 @@ func xmlEncoder(
 			vf := v.Field(i)
 
 			// skip the fields that aren't exportable
-			if skip := tf.Tag.Get("skip"); skip == "true" {
+			if util.IsSkippableField(tf) {
 				continue
 			}
 

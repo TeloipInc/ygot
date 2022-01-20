@@ -624,7 +624,7 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 
 	// If the field is an annotation, then we do not process it any further, including
 	// skipping running the iterFunction.
-	if IsYgotAnnotation(ni.StructField) {
+	if IsYgotAnnotation(ni.StructField) || IsSkippableField(ni.StructField) {
 		return nil
 	}
 
@@ -656,7 +656,7 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			sf := t.Field(i)
 
 			// Do not handle annotation fields, since they have no schema.
-			if IsYgotAnnotation(sf) {
+			if IsYgotAnnotation(sf) || IsSkippableField(sf) {
 				continue
 			}
 
@@ -953,7 +953,7 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 		ft := v.Type().Field(i)
 
 		// Skip annotation fields, since they do not have a schema.
-		if IsYgotAnnotation(ft) {
+		if IsYgotAnnotation(ft) || IsSkippableField(ft) {
 			continue
 		}
 

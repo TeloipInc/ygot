@@ -59,7 +59,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 			fieldValue := structElems.Field(i).Interface()
 
 			// Skip annotation fields when validating the schema.
-			if util.IsYgotAnnotation(fieldType) {
+			if util.IsYgotAnnotation(fieldType) || util.IsSkippableField(fieldType) {
 				continue
 			}
 
@@ -170,6 +170,10 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 				pp := strings.Split(s, "/")
 				allSchemaPaths = append(allSchemaPaths, []string{pp[len(pp)-1]})
 			}
+			continue
+		}
+
+		if util.IsSkippableField(ft) {
 			continue
 		}
 

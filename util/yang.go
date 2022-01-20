@@ -195,6 +195,15 @@ func IsYgotAnnotation(s reflect.StructField) bool {
 	return ok
 }
 
+// IsSkippableField reports whether struct field shouldn't be handled by ygot.
+func IsSkippableField(s reflect.StructField) bool {
+	v, ex := s.Tag.Lookup("skip")
+	if ex && v == "true" {
+		return true
+	}
+	return false
+}
+
 // IsSimpleEnumerationType returns true when the type supplied is a simple
 // enumeration (i.e., a leaf that is defined as type enumeration { ... },
 // and is not a typedef that contains an enumeration, or a union that
