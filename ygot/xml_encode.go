@@ -19,7 +19,7 @@ func encodeXML(s GoStruct, e *xml.Encoder, cfg xmlOutputConfig) error {
 		start.Name.Space = cfg.RootNamespace
 	}
 
-	err := xmlEncoder(e, s, start, cfg.Namespace, nil)
+	err := xmlEncoder(e, s, start, cfg.Namespace, nil, cfg.Attrs)
 	if err == nil {
 		e.Flush()
 	}
@@ -28,10 +28,12 @@ func encodeXML(s GoStruct, e *xml.Encoder, cfg xmlOutputConfig) error {
 }
 
 func xmlEncoder(
-	e *xml.Encoder, obj interface{},
+	e *xml.Encoder,
+	obj interface{},
 	start xml.StartElement,
 	xmlns string,
 	tags *reflect.StructTag,
+	attrs map[string][]xml.Attr,
 ) error {
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
@@ -49,6 +51,7 @@ func xmlEncoder(
 	switch k := v.Kind(); k {
 	case reflect.Struct:
 		if start.Name.Local != "" {
+			addAttrs(&start, attrs)
 			e.EncodeToken(start)
 		}
 		// Recurse into struct members.
@@ -65,7 +68,7 @@ func xmlEncoder(
 			s.Name.Local = tf.Tag.Get("path")
 			s.Name.Space = xmlns
 
-			if err := xmlEncoder(e, vf.Interface(), s, "", &tf.Tag); err != nil {
+			if err := xmlEncoder(e, vf.Interface(), s, "", &tf.Tag, attrs); err != nil {
 				return err
 			}
 		}
@@ -104,7 +107,7 @@ func xmlEncoder(
 			sort.Ints(indx)
 
 			for _, ind := range indx {
-				xmlEncoder(e, v.MapIndex(kmap[ind]).Interface(), start, "", tags)
+				xmlEncoder(e, v.MapIndex(kmap[ind]).Interface(), start.Copy(), "", tags, attrs)
 			}
 
 		} else {
@@ -119,7 +122,7 @@ func xmlEncoder(
 			sort.Strings(keys)
 
 			for _, k := range keys {
-				xmlEncoder(e, v.MapIndex(kmap[k]).Interface(), start, "", tags)
+				xmlEncoder(e, v.MapIndex(kmap[k]).Interface(), start.Copy(), "", tags, attrs)
 			}
 		}
 
@@ -135,10 +138,21 @@ func xmlEncoder(
 			}
 			obj = name
 		}
+		addAttrs(&start, attrs)
 		e.EncodeElement(obj, start)
 	}
 
 	return nil
+}
+
+func addAttrs(start *xml.StartElement, m map[string][]xml.Attr) {
+	if m == nil {
+		return
+	}
+
+	if x, ok := m[start.Name.Local]; ok {
+		start.Attr = append(start.Attr, x...)
+	}
 }
 
 func getOrderedMapIndex(v reflect.Value) (int, error) {

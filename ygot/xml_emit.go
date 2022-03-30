@@ -11,21 +11,8 @@ const (
 	rootElement  string = "root"
 )
 
-// XMLEncode is an enumerated integer value indicating how the xml is encoded.
-type XMLEncode int
-
-const (
-	// EncodeXML forces the use of encodeXML function to encode XML.
-	EncodeXML XMLEncode = iota
-	// MakeXML forces the use of makeXML function to encode XML.
-	MakeXML
-)
-
 // EmitxmlConfig specifies how the XML should be created by the EmitXML function.
 type EmitXMLConfig struct {
-	// Encode specifies how the XML is produced by ygot package. By default,
-	// EncodeXML is chosen.
-	Encode XMLEncode
 	// Indent is the string used for indentation within the XML output. The
 	// default value is three spaces.
 	Indent string
@@ -54,9 +41,11 @@ type EmitXMLConfig struct {
 	// validation rules in the case that a partially populated data instance is
 	// to be emitted.
 	ValidationOpts []ValidationOption
+	// Attrs specifies xml attributes that should be added to elements (using element name).
+	Attrs map[string][]xml.Attr
 }
 
-// xmlOutputConfig is used to determine how makeXML/encodeXML should generate XML.
+// xmlOutputConfig is used to determine how encodeXML should generate XML.
 type xmlOutputConfig struct {
 	// Namespace specifies the XML namespace to which the data structures being
 	// converted to XML belong.
@@ -70,6 +59,8 @@ type xmlOutputConfig struct {
 	// Namespace specifies the XML namespace to which the root data structure being
 	// converted to XML belongs.
 	RootNamespace string
+	// Attrs specifies xml attributes that should be added to elements (using element name).
+	Attrs map[string][]xml.Attr
 }
 
 // EmitXML takes an input ValidatedGoStruct (produced by ygen with validation enabled)
@@ -84,11 +75,9 @@ func EmitXML(s ValidatedGoStruct, opts *EmitXMLConfig) (string, error) {
 		RootElement: rootElement,
 	}
 
-	encode := EncodeXML
 	if opts != nil {
 		vopts = opts.ValidationOpts
 		skipValidation = opts.SkipValidation
-		encode = opts.Encode
 
 		cfg.Namespace = opts.Namespace
 
@@ -101,6 +90,8 @@ func EmitXML(s ValidatedGoStruct, opts *EmitXMLConfig) (string, error) {
 		}
 
 		cfg.SkipRootElement = opts.SkipRootElement
+
+		cfg.Attrs = opts.Attrs
 	}
 
 	if !skipValidation {
@@ -123,16 +114,9 @@ func EmitXML(s ValidatedGoStruct, opts *EmitXMLConfig) (string, error) {
 	}
 	enc.Indent(prefix, indent)
 
-	if encode == MakeXML {
-		err := makeXML(s, enc, cfg)
-		if err != nil {
-			return "", fmt.Errorf("makeXML error: %v", err)
-		}
-	} else {
-		err := encodeXML(s, enc, cfg)
-		if err != nil {
-			return "", fmt.Errorf("encodeXML error: %v", err)
-		}
+	err := encodeXML(s, enc, cfg)
+	if err != nil {
+		return "", fmt.Errorf("encodeXML error: %v", err)
 	}
 
 	return sb.String(), nil
