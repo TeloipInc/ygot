@@ -1,0 +1,65 @@
+module test-rpc {
+  prefix "r";
+  namespace "urn:r";
+
+  typedef y-type {
+    type enumeration {
+      enum a{}
+      enum b{}
+    }
+  }
+
+  grouping group {
+    leaf group-leaf {
+      type string;
+    }
+  }
+
+  container configuration {
+    container parent {
+      list children {
+        key "name";
+        leaf name {
+            type string;
+        }
+      }      
+
+      uses group;
+
+      leaf enum-field {
+        type y-type;
+      }
+    }
+  }
+
+  rpc set-x {
+    input {
+      leaf x {
+        type string;
+      }
+    }
+  }
+
+  rpc get-x {
+    output {
+      leaf x {
+        type string;
+      }
+    }
+  }
+
+  rpc x-to-y {
+    input {
+      leaf x {
+        type string;
+      }
+      uses group;
+    }
+    output {
+      leaf y {
+        type y-type;
+      }
+      uses group;
+    }
+  }
+}

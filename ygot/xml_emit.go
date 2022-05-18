@@ -30,7 +30,6 @@ type EmitXMLConfig struct {
 	RootNamespace string
 	// SkipRootElement specifies whether the GoStruct supplied to EmitXML should
 	// create the xml element.
-	// is set to true.
 	SkipRootElement bool
 	// SkipValidation specifies whether the GoStruct supplied to EmitXML should
 	// be validated before emitting its content. Validation is skipped when it
@@ -41,24 +40,6 @@ type EmitXMLConfig struct {
 	// validation rules in the case that a partially populated data instance is
 	// to be emitted.
 	ValidationOpts []ValidationOption
-	// Attrs specifies xml attributes that should be added to elements (using element name).
-	Attrs map[string][]xml.Attr
-}
-
-// xmlOutputConfig is used to determine how encodeXML should generate XML.
-type xmlOutputConfig struct {
-	// Namespace specifies the XML namespace to which the data structures being
-	// converted to XML belong.
-	Namespace string
-	// SkipRootElement specifies whether the GoStruct supplied to EmitXML should
-	// create the xml element.
-	// is set to true.
-	SkipRootElement bool
-	// RootElement specifies the name of the root element.
-	RootElement string
-	// Namespace specifies the XML namespace to which the root data structure being
-	// converted to XML belongs.
-	RootNamespace string
 	// Attrs specifies xml attributes that should be added to elements (using element name).
 	Attrs map[string][]xml.Attr
 }

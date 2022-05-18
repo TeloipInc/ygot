@@ -9,6 +9,23 @@ import (
 	"github.com/openconfig/ygot/util"
 )
 
+// xmlOutputConfig is used to determine how encodeXML should generate XML.
+type xmlOutputConfig struct {
+	// Namespace specifies the XML namespace to which the data structures being
+	// converted to XML belong.
+	Namespace string
+	// SkipRootElement specifies whether the GoStruct supplied to EmitXML should
+	// create the xml element.
+	SkipRootElement bool
+	// RootElement specifies the name of the root element.
+	RootElement string
+	// Namespace specifies the XML namespace to which the root data structure being
+	// converted to XML belongs.
+	RootNamespace string
+	// Attrs specifies xml attributes that should be added to elements (using element name).
+	Attrs map[string][]xml.Attr
+}
+
 // encodeXML renders the GoStruct s to xml string using a very simple set of
 // conversion rules.
 func encodeXML(s GoStruct, e *xml.Encoder, cfg xmlOutputConfig) error {
